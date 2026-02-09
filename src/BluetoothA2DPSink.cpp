@@ -111,6 +111,10 @@ void BluetoothA2DPSink::set_raw_stream_reader(void (*callBack)(const uint8_t *,
   this->raw_stream_reader = callBack;
 }
 
+void BluetoothA2DPSink::set_raw_stream_reader_writer(void (*callBack)(int16_t *, uint32_t)) {
+  this->raw_stream_reader_writer = callBack;
+}
+
 void BluetoothA2DPSink::set_on_data_received(void (*callBack)()) {
   this->data_received = callBack;
 }
@@ -1166,6 +1170,12 @@ void BluetoothA2DPSink::audio_data_callback(const uint8_t *data, uint32_t len) {
 
   // adjust the volume
   volume_control()->update_audio_data((Frame *)data, len / 4);
+
+  // allow in-place modification of audio data
+  if (raw_stream_reader_writer != nullptr) {
+    ESP_LOGV(BT_AV_TAG, "raw_stream_reader_writer");
+    (*raw_stream_reader_writer)(reinterpret_cast<int16_t *>(const_cast<uint8_t *>(data)), len / 4);
+  }
 
   // make data available via callback
   if (stream_reader != nullptr) {
