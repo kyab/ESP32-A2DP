@@ -1348,7 +1348,9 @@ void BluetoothA2DPSink::app_rc_tg_callback(esp_avrc_tg_cb_event_t event,
 }
 
 void BluetoothA2DPSink::volume_set_by_controller(uint8_t volume) {
-  ESP_LOGI(BT_AV_TAG, "Volume is set by remote controller to %d",
+  // Verbose: Mac/iOS can send many absolute-volume updates per second; keep at DEBUG
+  // so esp_log_level_set("BT_AV",...) is not required to silence the monitor.
+  ESP_LOGD(BT_AV_TAG, "Volume is set by remote controller to %d",
            (uint32_t)volume * 100 / 0x7f);
 
   _lock_acquire(&s_volume_lock);
@@ -1397,7 +1399,7 @@ void BluetoothA2DPSink::av_hdl_avrc_tg_evt(uint16_t event, void *p_param) {
     }
 
     case ESP_AVRC_TG_SET_ABSOLUTE_VOLUME_CMD_EVT: {
-      ESP_LOGI(BT_AV_TAG, "AVRC remote set absolute volume: %d%%",
+      ESP_LOGD(BT_AV_TAG, "AVRC remote set absolute volume: %d%%",
                (int)rc->set_abs_vol.volume * 100 / 0x7f);
       volume_set_by_controller(rc->set_abs_vol.volume);
       break;
