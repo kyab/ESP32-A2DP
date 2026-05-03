@@ -111,6 +111,10 @@ void BluetoothA2DPSink::set_raw_stream_reader(void (*callBack)(const uint8_t *,
   this->raw_stream_reader = callBack;
 }
 
+void BluetoothA2DPSink::set_raw_stream_reader_writer(void (*callBack)(int16_t *, uint32_t)) {
+  this->raw_stream_reader_writer = callBack;
+}
+
 void BluetoothA2DPSink::set_on_data_received(void (*callBack)()) {
   this->data_received = callBack;
 }
@@ -1167,6 +1171,12 @@ void BluetoothA2DPSink::audio_data_callback(const uint8_t *data, uint32_t len) {
   // adjust the volume
   volume_control()->update_audio_data((Frame *)data, len / 4);
 
+  // allow in-place modification of audio data
+  if (raw_stream_reader_writer != nullptr) {
+    ESP_LOGV(BT_AV_TAG, "raw_stream_reader_writer");
+    (*raw_stream_reader_writer)(reinterpret_cast<int16_t *>(const_cast<uint8_t *>(data)), len / 4);
+  }
+
   // make data available via callback
   if (stream_reader != nullptr) {
     ESP_LOGD(BT_AV_TAG, "stream_reader");
@@ -1338,7 +1348,9 @@ void BluetoothA2DPSink::app_rc_tg_callback(esp_avrc_tg_cb_event_t event,
 }
 
 void BluetoothA2DPSink::volume_set_by_controller(uint8_t volume) {
-  ESP_LOGI(BT_AV_TAG, "Volume is set by remote controller to %d",
+  // Verbose: Mac/iOS can send many absolute-volume updates per second; keep at DEBUG
+  // so esp_log_level_set("BT_AV",...) is not required to silence the monitor.
+  ESP_LOGD(BT_AV_TAG, "Volume is set by remote controller to %d",
            (uint32_t)volume * 100 / 0x7f);
 
   _lock_acquire(&s_volume_lock);
@@ -1387,7 +1399,7 @@ void BluetoothA2DPSink::av_hdl_avrc_tg_evt(uint16_t event, void *p_param) {
     }
 
     case ESP_AVRC_TG_SET_ABSOLUTE_VOLUME_CMD_EVT: {
-      ESP_LOGI(BT_AV_TAG, "AVRC remote set absolute volume: %d%%",
+      ESP_LOGD(BT_AV_TAG, "AVRC remote set absolute volume: %d%%",
                (int)rc->set_abs_vol.volume * 100 / 0x7f);
       volume_set_by_controller(rc->set_abs_vol.volume);
       break;
