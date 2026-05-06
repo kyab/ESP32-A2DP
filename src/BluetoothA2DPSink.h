@@ -295,6 +295,12 @@ class BluetoothA2DPSink : public BluetoothA2DPCommon {
     volume_control()->set_mono_downmix(enabled);
   }
 
+  /// Enables/disables PCM-side digital volume processing.
+  virtual void set_digital_volume_control(bool enabled) {
+    use_digital_volume_control = enabled;
+    volume_control()->set_enabled(enabled);
+  }
+
   /// Provides the actually set data rate (in samples per second)
   virtual uint16_t sample_rate() { return m_sample_rate; }
 
@@ -412,6 +418,7 @@ class BluetoothA2DPSink : public BluetoothA2DPCommon {
   volatile bool is_i2s_active = false;
   // activate output via BluetoothA2DPOutput
   bool is_output = true;
+  bool use_digital_volume_control = true;
   uint16_t m_sample_rate = 44100;  // set default rate
   // number of PCM channels negotiated (1=mono,2=stereo). Default 2.
   uint8_t m_channels = 2;
