@@ -1250,8 +1250,12 @@ void BluetoothA2DPSink::set_volume(uint8_t volume) {
   // limit the volume to 127
   s_volume = std::min((int)volume, 0x7f);
   ESP_LOGI(BT_AV_TAG, "set_volume %d -> %d", volume, s_volume);
-  volume_control()->set_volume(s_volume);
-  volume_control()->set_enabled(true);
+  if (use_digital_volume_control) {
+    volume_control()->set_volume(s_volume);
+    volume_control()->set_enabled(true);
+  } else {
+    volume_control()->set_enabled(false);
+  }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
   volume_set_by_local_host(s_volume);
@@ -1357,8 +1361,12 @@ void BluetoothA2DPSink::volume_set_by_controller(uint8_t volume) {
   s_volume = volume;
   _lock_release(&s_volume_lock);
 
-  volume_control()->set_volume(s_volume);
-  volume_control()->set_enabled(true);
+  if (use_digital_volume_control) {
+    volume_control()->set_volume(s_volume);
+    volume_control()->set_enabled(true);
+  } else {
+    volume_control()->set_enabled(false);
+  }
 
   if (bt_volumechange != nullptr) {
     (*bt_volumechange)(s_volume);
